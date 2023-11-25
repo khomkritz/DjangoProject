@@ -32,6 +32,7 @@ class CreateUser(APIView):
         check_email = User.objects.using(db_default).filter(email=data["email"]).exists()
         if check_email == True:
             return Response({"status" : False,"message" : "already have a email",}, status=status.HTTP_400_BAD_REQUEST)
+        ## check email beacuse can't use email duplicate ##
         data_user = {
             "first_name" : data["first_name"],
             "last_name" : data["last_name"],
@@ -53,8 +54,10 @@ class UpdateUser(APIView):
             check_email = User.objects.using(db_default).filter(email=data["email"]).exists()
             if check_email == True:
                 return Response({"status" : False,"message" : "already have a email",}, status=status.HTTP_400_BAD_REQUEST)
+        ## check email beacuse can't use email duplicate ##
         if "status" in data and data["status"] not in ["ACTIVE","INACTIVE"]:
             return Response({"status" : False,"message" : "error user status",}, status=status.HTTP_400_BAD_REQUEST)
+        ## check status name in body will error when status name not in ["ACTIVE","INACTIVE"] ##
         update_user = User.objects.using(db_default).filter(id=id).update(**data)
         if update_user:
             user = User.objects.using(db_default).get(id=id)
@@ -76,6 +79,7 @@ class DeleteUser(APIView):
         user = User.objects.using(db_default).get(id=id)
         if user.status == "DELETE":
             return Response({"status" : False,"message" : "user was deleted",}, status=status.HTTP_400_BAD_REQUEST)
+        ## check user status == DELETE will response error ##
         user.status = "DELETE"
         user.delete_at = datetime.now()
         user.save()
@@ -87,7 +91,7 @@ class GetTaskList(APIView):
         status_name = request.GET.get("status")
         software = request.GET.get("software")
         date_start = request.GET.get("date_start")
-        date_end = request.GET.get("date_start")
+        date_end = request.GET.get("date_end")
         tasks = UserTask.objects.using(db_default).all()
         if status_name != None:
             tasks = tasks.filter(status=status_name)
@@ -95,6 +99,7 @@ class GetTaskList(APIView):
             tasks = tasks.filter(software=software)
         elif date_start != None and date_end != None:
             tasks = tasks.filter(due_date__range=(datetime.strptime(date_start, '%Y-%m-%d'), (datetime.strptime(date_end, '%Y-%m-%d') + timedelta(minutes=1439))))
+        ## this code will filter when have params status, software, date_start and date_end will filter data ##
         for task in tasks:
             user_detail = None
             if (task.user_id != None) and (task.user_id != 0):
@@ -155,9 +160,11 @@ class CreateTask(APIView):
         create_by = request.GET.get("create_by")
         if create_by == None:
             return Response({"status" : False,"message" : "require user id for create",}, status=status.HTTP_400_BAD_REQUEST)
+        ## require user id to create make me know who are create this task ##
         task_status = "PENDING"
         if "user_id" in data and data["user_id"] != None:
             task_status = "IN PROGRESS"
+        ## this code is check when create task if have user_id or user_id != None , this task will status = IN PROGRESS because add task to user ##
         data_taks = {
             "title" : data["title"],
             "description" : data["description"],
@@ -179,10 +186,13 @@ class UpdateTask(APIView):
         update_by = request.GET.get("update_by")
         if update_by == None:
             return Response({"status" : False,"message" : "require user id for update",}, status=status.HTTP_400_BAD_REQUEST)
+        ## require user id to update make me know who are update this task ##
         if "due_date" in data and data["due_date"] != None:
             data["due_date"] = datetime.strptime(data["due_date"], '%Y-%m-%d') + timedelta(minutes=1439)
+        ## this code when have data name due_date in body will + time 24:59 to due_date
         if "status" in data and data["status"] not in ["PENDING","IN PROGRESS","COMPLETE"]:
             return Response({"status" : False,"message" : "error user status",}, status=status.HTTP_400_BAD_REQUEST)
+        ## check status name in body will error when status name not in ["PENDING","IN PROGRESS","COMPLETE"] ##
         data["update_by"] = update_by
         data["update_at"] = datetime.now()
         update_task = UserTask.objects.using(db_default).filter(id=id).update(**data)
@@ -215,6 +225,7 @@ class DeleteTask(APIView):
         delete_by = request.GET.get("delete_by")
         if delete_by == None:
             return Response({"status" : False,"message" : "require user id for delete",}, status=status.HTTP_400_BAD_REQUEST)
+        ## require user id to delete make me know who are delete this task ##
         task = UserTask.objects.using(db_default).get(id=id)
         if task.status == "DELETE":
             return Response({"status" : False,"message" : "task was deleted",}, status=status.HTTP_400_BAD_REQUEST)
