@@ -6,6 +6,7 @@ from .models import User, UserTask
 from .utils import UserDetail
 from DjangoProject.settings import db_default
 from datetime import datetime, timedelta
+from django.db.models import Q
 
 
 # Create your views here.
@@ -92,13 +93,19 @@ class GetTaskList(APIView):
         software = request.GET.get("software")
         date_start = request.GET.get("date_start")
         date_end = request.GET.get("date_end")
+        create_by = request.GET.get("create_by")
+        update_by = request.GET.get("update_by")
         tasks = UserTask.objects.using(db_default).all()
         if status_name != None:
             tasks = tasks.filter(status=status_name)
-        elif software != None:
+        if software != None:
             tasks = tasks.filter(software=software)
-        elif date_start != None and date_end != None:
+        if date_start != None and date_end != None:
             tasks = tasks.filter(due_date__range=(datetime.strptime(date_start, '%Y-%m-%d'), (datetime.strptime(date_end, '%Y-%m-%d') + timedelta(minutes=1439))))
+        if create_by != None:
+            tasks = tasks.filter(create_by=create_by)
+        if update_by != None:
+            tasks = tasks.filter(update_by=update_by)
         ## this code will filter when have params status, software, date_start and date_end will filter data ##
         for task in tasks:
             user_detail = None
@@ -116,7 +123,10 @@ class GetTaskList(APIView):
                 "software" : task.software,
                 "status" : task.status,
                 "user" : user_detail,
-                "due_date" : task.due_date
+                "due_date" : task.due_date,
+                "create_at" : task.create_at,
+                "update_at" : task.update_at,
+                "delete_at" : task.delete_at
             }
             collect_task.append(data_task)
         return Response({"status" : True,"message" : "get success", "data" : collect_task},status=status.HTTP_200_OK)
